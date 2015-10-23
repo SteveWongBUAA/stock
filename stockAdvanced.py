@@ -3,20 +3,64 @@
 import xlwt
 import xlrd
 import datetime
-import numpy as np
 import matplotlib.pyplot as plt
+
+def norm(list, gain=1.0):
+    #normalize totalMoneyShow
+    listMax = max(list)
+    listMin = min(list)
+    times = float(listMax - listMin)
+    listNorm = []
+    for i in list:
+        listNorm.append(gain * (i - listMin) / times)
+    return listNorm
+
+def normWithMaxNMin(list, max, min, gain=1.0):
+    #normalize totalMoneyShow
+    times = float(max - min)
+    listNorm = []
+    for i in list:
+        listNorm.append(gain * (i - min) / times)
+    return listNorm
+
+
+#############################################################
+#基础设定
+name = '513100'
+inputMoney = 10000
+monthIn = 1000
+fee = 0.001#交易手续费
+ZRB = 0.1/12#真融宝收益比较
+ZRBM = inputMoney
+timesM = 10000.0
+timesPrice = 1.0
+gainNorm = 0.8
+myDPI = 120
+length = 20
+width = 10
+def zoomPrice(data, timesPrice=1.0):
+    ret = []
+    for i in data:
+        ret.append(i * timesPrice)
+    return ret
+#############################################################
 #读文件
-name = '159929'
 title = xlrd.open_workbook(name + '.xls')
 table = title.sheet_by_name('Table')
-print 'fund: ', name
 #写文件
 wb = xlwt.Workbook(encoding='utf-8')
 sheet1 = wb.add_sheet('result')
 #读取每一列
-price = table.col_values(1)
+tmpPrice = table.col_values(1)
 date = table.col_values(0)
 limit = table.col_values(2)
+price = [0]
+if tmpPrice[1] > 10:#股价太高，说明是指数，降低1000倍
+    for i in range(1, len(tmpPrice)):
+        price.append(tmpPrice[i]/1000.0)
+else:
+    for i in range(1, len(tmpPrice)):
+        price.append(tmpPrice[i])
 flag = []
 #第一步：判断当天收盘价是否高于20日线
 sheet1.write(20, 0, 'date')
@@ -43,8 +87,15 @@ for i in range(0, len(price)):
 dateShow = []
 priceShow = []
 buyShow = []
+buyDateShow = []
 sellShow = []
+sellDateShow = []
 MA20Show = []
+totalMoneyShow = []
+costShow = []
+totalMoneyStupidShow = []
+totalMoneyZRBShow = []
+
 for i in range(21, len(price)):
     #每20个price组成一个temp数组
     tmplist = price[i-20:i]
@@ -54,8 +105,8 @@ for i in range(21, len(price)):
     sheet1.write(i, 2, limit[i])
     dateShow.append(datetime.datetime.strptime(date[i][0:10], '%Y-%m-%d').date())
     priceShow.append(price[i])
-    buyShow.append(0)
-    sellShow.append(0)
+    # buyShow.append(0)
+    # sellShow.append(0)
     #print tmplist
     MA20 = sum(tmplist)/20.0
     MA20Show.append(MA20)
@@ -66,13 +117,9 @@ for i in range(21, len(price)):
     sheet1.write(i, 3, MA20)
     sheet1.write(i, 4, flag[i])
 
-#基础设定
-inputMoney = 10000
-print 'inputMoney', inputMoney
-monthIn = 1000
-fee = 0.001#交易手续费
-ZRB = 0.1/12#真融宝收益比较
-ZRBM = inputMoney
+
+
+
 #开始投资
 tmpMonth = date[21][5:7]#初始月份
 #初始状态
@@ -81,13 +128,15 @@ if flag[21] == 1:#初始状态为持有
     stockMoney = stockNum * price[21]
     restMoney = inputMoney - stockMoney - stockMoney * fee
     savedMoney = 0
-    buyShow[0] = price[21]
+    buyShow.append(priceShow[0])
+    buyDateShow.append(dateShow[0])
 else:#初始状态为不持有
     stockNum = 0
     stockMoney = 0
     restMoney = inputMoney
     savedMoney = 0
-    buyShow[0] = 0
+    sellShow.append(priceShow[0])
+    sellDateShow.append(dateShow[0])
 totalMoney = stockMoney + restMoney + savedMoney
 cost = inputMoney
 sheet1.write(21, 5, stockNum)
@@ -95,15 +144,21 @@ sheet1.write(21, 6, stockMoney)
 sheet1.write(21, 7, restMoney)
 sheet1.write(21, 8, savedMoney)
 sheet1.write(21, 9, totalMoney)
+costShow.append(cost/timesM)
+totalMoneyShow.append(totalMoney/timesM)
+
 
 #无脑投初始状态
 stockNum1 = int(inputMoney/(1+fee) / price[21] / 100) * 100
 stockMoney1 = stockNum1 * price[21]
 restMoney1 = inputMoney - stockMoney1 - stockMoney1 * fee
 totalMoney1 = stockMoney1 + restMoney1
+totalMoneyStupidShow.append(totalMoney1/timesM)
+
+totalMoneyZRBShow.append(ZRBM/timesM)
 
 #开始循环投资
-for i in range(22, len(flag)-1):
+for i in range(22, len(flag)):
     #先算今天的资产情况
     stockMoney = stockNum * price[i]
     stockMoney1 = stockNum1 * price[i]
@@ -123,7 +178,10 @@ for i in range(22, len(flag)-1):
             stockNum1 += tmpStockNum1
             stockMoney1 += (tmpStockNum1 * price[i])
             restMoney1 = restMoney1 + monthIn - tmpStockNum1 * price[i] - tmpStockNum1 * price[i] * fee
-            buyShow[i-21] = price[i]
+            buyShow.append(price[i])
+            buyDateShow.append(datetime.datetime.strptime(date[i][0:10], '%Y-%m-%d').date())
+        else:
+            restMoney1 += monthIn
         sheet1.write(i, 11, stockNum1)
         sheet1.write(i, 12, stockMoney1)
         sheet1.write(i, 13, restMoney1)
@@ -136,18 +194,24 @@ for i in range(22, len(flag)-1):
             stockMoney += (tmpStockNum * price[i])
             restMoney = restMoney + savedMoney - tmpStockNum * price[i] - tmpStockNum * price[i] * fee
             savedMoney = 0#存起来的钱清零
-            buyShow[i-21] = price[i]
+            buyShow.append(price[i])
+            buyDateShow.append(datetime.datetime.strptime(date[i][0:10], '%Y-%m-%d').date())
     else:#如果持有标志为0, 卖掉
         restMoney += (stockMoney * (1-fee))
         stockMoney = 0
         stockNum = 0
-        sellShow[i-21] = price[i]
+        sellShow.append(price[i])
+        sellDateShow.append(datetime.datetime.strptime(date[i][0:10], '%Y-%m-%d').date())
     sheet1.write(i, 5, stockNum)
     sheet1.write(i, 6, stockMoney)
     sheet1.write(i, 7, restMoney)
     sheet1.write(i, 8, savedMoney)
     totalMoney = stockMoney + restMoney + savedMoney
     sheet1.write(i, 9, totalMoney)
+    costShow.append(cost/timesM)
+    totalMoneyShow.append(totalMoney/timesM)
+    totalMoneyStupidShow.append(totalMoney1/timesM)
+    totalMoneyZRBShow.append(ZRBM/timesM)
 
 daysPast = datetime.datetime.strptime(date[-1][0:10], '%Y-%m-%d') - \
                     datetime.datetime.strptime(date[1][0:10], '%Y-%m-%d')
@@ -166,21 +230,57 @@ print out.decode('utf-8')
 print out0.decode('utf-8')
 print out1.decode('utf-8')
 
-fig = plt.figure()
+fig = plt.figure(figsize=(length, width), dpi=myDPI)
 plt.title(name)
 plt.xlabel('time')
-plt.ylabel('price')
+plt.ylabel('data')
 plt.grid(True)
-plt.ylim(min(priceShow), max(priceShow))
-x = np.linspace(0, 1, len(priceShow))
-plt.plot_date(dateShow, priceShow, 'b-', label='Daily Closing Price')
-plt.plot_date(dateShow, MA20Show, 'k--', label='MA20', linewidth=2)
-plt.scatter(dateShow, buyShow, s=80, label='Buy', c='red', marker='*')
+upLimit = max([max(priceShow), max(totalMoneyShow), max(costShow)])
+downLimit = min([min(priceShow), min(totalMoneyShow), min(costShow)])
+plt.ylim(downLimit, upLimit)
+plt.plot_date(dateShow, zoomPrice(priceShow, timesPrice), 'b-', label='Daily Closing Price')
+plt.plot_date(dateShow, zoomPrice(MA20Show, timesPrice), 'k--', label='MA20', linewidth=2)
+plt.scatter(buyDateShow, zoomPrice(buyShow, timesPrice), s=80, label='Buy', c='red', marker='*')
+plt.scatter(sellDateShow, zoomPrice(sellShow, timesPrice), s=100, label='Sell', c='yellow', marker='.')
+plt.plot_date(dateShow, costShow, 'c--', label='Cost(w)', linewidth=1)
+plt.plot_date(dateShow, totalMoneyShow, 'm-', label='TotalMoney(w)', linewidth=2)
+plt.plot_date(dateShow, totalMoneyStupidShow, 'g:', label='TotalMoneyStupid(w)', linewidth=2)
+plt.plot_date(dateShow, totalMoneyZRBShow, 'k--', label='TotalMoneyZRB(w)', linewidth=1)
 #plt.plot_date(dateShow, buyShow)
-plt.scatter(dateShow, sellShow, s=100, label='Sell', c='yellow', marker='.')
+
 #plt.plot_date(dateShow, sellShow)
 plt.legend(numpoints=1, fontsize=18)
 #plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 plt.legend(loc='upper left')
-plt.show()
+#plt.show()
+plt.savefig(name + '.png')
+
+fig1 = plt.figure(figsize=(length, width), dpi=myDPI)
+plt.title(name + '(Norm)(price*%.1f)' % round(gainNorm,1))
+plt.xlabel('time')
+plt.ylabel('data')
+plt.grid(True)
+priceShowNorm = norm(priceShow, gainNorm)
+MA20ShowNorm = norm(MA20Show, gainNorm)
+buyShowNorm = normWithMaxNMin(buyShow, max(priceShow), min(priceShow), gainNorm)
+sellShowNorm = normWithMaxNMin(sellShow, max(priceShow), min(priceShow), gainNorm)
+totalMoneyShowNorm = norm(totalMoneyShow)
+costShowNorm = normWithMaxNMin(costShow, max(totalMoneyShow), min(totalMoneyShow))
+totalMoneyStupidShowNorm = normWithMaxNMin(totalMoneyStupidShow, max(totalMoneyShow), min(totalMoneyShow))
+totalMoneyZRBShowNorm = normWithMaxNMin(totalMoneyZRBShow, max(totalMoneyShow), min(totalMoneyShow))
+# plt.ylim(downLimit, upLimit)
+plt.plot_date(dateShow, priceShowNorm, 'b-', label='Daily Closing Price')
+plt.plot_date(dateShow, MA20ShowNorm, 'k--', label='MA20', linewidth=2)
+plt.scatter(buyDateShow, buyShowNorm, s=80, label='Buy', c='red', marker='*')
+plt.plot_date(dateShow, costShowNorm, 'c--', label='Cost', linewidth=2)
+plt.plot_date(dateShow, totalMoneyShowNorm, 'm-', label='TotalMoney', linewidth=1)
+plt.plot_date(dateShow, totalMoneyStupidShowNorm, 'g:', label='TotalMoneyStupid(w)', linewidth=2)
+plt.plot_date(dateShow, totalMoneyZRBShowNorm, 'k--', label='TotalMoneyZRB(w)', linewidth=1)
+plt.scatter(sellDateShow, sellShowNorm, s=100, label='Sell', c='yellow', marker='.')
+#plt.plot_date(dateShow, sellShow)
+plt.legend(numpoints=1, fontsize=18)
+#plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+plt.legend(loc='upper left')
+plt.savefig(name + 'Norm_priceX%.1f.png'%gainNorm)
+#plt.show()
 wb.save(name + '_' + str(datetime.datetime.now().strftime('%d_%H')) +'.xls')

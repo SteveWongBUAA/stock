@@ -1,0 +1,56 @@
+***** CYB *****
+start_date: 2011-12-09,五 end_date: 2015-07-29,三
+Can not sell! 2013-12-02,一
+Can not sell! 2015-07-27,一
+inputMoney 10000
+outputMoney 21172.4295258
+The same time ETF 30552.0702635
+winNum 16 loseNum 36
+winRate 0.307692307692
+
+***** 159902 *****
+start_date: 2006-09-05,二 end_date: 2015-07-29,三
+Can not sell! 2007-02-27,二
+Can not buy! 2008-04-24,四
+Can not sell! 2015-07-27,一
+inputMoney 10000
+outputMoney 46781.3002171
+The same time ETF 38377.016129
+winNum 35 loseNum 79
+winRate 0.30701754386
+
+***** 510050 *****
+start_date: 2005-02-23,三 end_date: 2015-07-29,三
+Can not buy! 2008-04-24,四
+Can not buy! 2008-09-22,一
+Can not sell! 2015-01-19,一
+inputMoney 10000
+outputMoney 43752.3355447
+The same time ETF 28926.9406393
+winNum 37 loseNum 93
+winRate 0.284615384615
+
+***** 159901 *****
+start_date: 2006-04-24,一 end_date: 2015-07-29,三
+Can not buy! 2008-04-24,四
+Can not buy! 2014-09-01,一
+inputMoney 10000
+outputMoney 52033.77361
+The same time ETF 42690.9090909
+winNum 32 loseNum 77
+winRate 0.293577981651
+
+***** 159915 *****
+start_date: 2011-12-09,五 end_date: 2015-07-29,三
+Can not sell! 2013-12-02,一
+Can not sell! 2015-07-27,一
+inputMoney 10000
+outputMoney 21172.4295258
+The same time ETF 32283.5633626
+winNum 16 loseNum 36
+winRate 0.307692307692
+
+
+
+
+
