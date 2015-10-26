@@ -26,22 +26,22 @@ def normWithMaxNMin(list, max, min, gain=1.0):
 
 #############################################################
 #基础设定
-name = '513100'
+name = '159902'
 inputMoney = 10000
 monthIn = 1000
 fee = 0.001#交易手续费
-ZRB = 0.1/12#真融宝收益比较
+ZRB = 1.1**(1.0/12)-1#真融宝收益比较
 ZRBM = inputMoney
 timesM = 10000.0
 timesPrice = 1.0
 gainNorm = 0.8
 myDPI = 120
-length = 20
-width = 10
+length = 40
+width = 20
 def zoomPrice(data, timesPrice=1.0):
     ret = []
-    for i in data:
-        ret.append(i * timesPrice)
+    for i0 in data:
+        ret.append(i0 * timesPrice)
     return ret
 #############################################################
 #读文件
@@ -182,11 +182,11 @@ for i in range(22, len(flag)):
             buyDateShow.append(datetime.datetime.strptime(date[i][0:10], '%Y-%m-%d').date())
         else:
             restMoney1 += monthIn
-        sheet1.write(i, 11, stockNum1)
-        sheet1.write(i, 12, stockMoney1)
-        sheet1.write(i, 13, restMoney1)
-        totalMoney1 = stockMoney1 + restMoney1
-        sheet1.write(i, 14, totalMoney1)
+    sheet1.write(i, 11, stockNum1)
+    sheet1.write(i, 12, stockMoney1)
+    sheet1.write(i, 13, restMoney1)
+    totalMoney1 = stockMoney1 + restMoney1
+    sheet1.write(i, 14, totalMoney1)
     if flag[i] == 1:#如果持有标志为1则再把剩余的钱买入
         tmpStockNum = int((savedMoney + restMoney)/(1+fee) / price[i] / 100) * 100
         if tmpStockNum != 0:#购买一份了，那就买买买
@@ -213,18 +213,30 @@ for i in range(22, len(flag)):
     totalMoneyStupidShow.append(totalMoney1/timesM)
     totalMoneyZRBShow.append(ZRBM/timesM)
 
+
+
 daysPast = datetime.datetime.strptime(date[-1][0:10], '%Y-%m-%d') - \
                     datetime.datetime.strptime(date[1][0:10], '%Y-%m-%d')
+
+AnnualInterestRate = ((totalMoney / float(cost)) ** (1 / (float(daysPast.days) / 365.0)) - 1) * 100
+
 out = "从%s到%s，购买%s的天数为%s天(共%s年)，初始资金%d，每月定投%d，最后总投入为%d。同期定投真融宝(年化收益0.1)得到%d。" \
       % (str(date[1][0:10]), str(date[-1][0:10]), name, str(daysPast), str(daysPast.days/365.0), inputMoney, monthIn, cost, ZRBM)
-out0 = "20日线定投基金最终得到%d。" % totalMoney
+out0 = "20日线定投基金最终得到%d。年化收益率%f" % (totalMoney, AnnualInterestRate) + '%'
 out1 = "无脑月初定投%d，最终得到%d。" \
       % (monthIn, totalMoney1)
-out00 = "交易规则：初始资金10000，每月定投1000，每天检查，如果当天价格在二十日线以上，再判断剩余的钱是否足够买100股以上，足够的话，买买买。当天价格在二十日线以下就全仓卖掉"
+out00 = "交易规则：初始资金%d，每月定投%d，每天检查，如果当天价格在二十日线以上，\
+再判断剩余的钱是否足够买100股以上，足够的话，买买买。当天价格在二十日线以下就全仓卖掉" % (inputMoney, monthIn)
 sheet1.write(0, 0, out)
 sheet1.write(1, 0, out0)
 sheet1.write(2, 0, out1)
 sheet1.write(3, 0, out00)
+
+for i in range(1, len(totalMoneyShow)):
+    tr = totalMoneyShow[i] / totalMoneyShow[i-1]
+    if tr < 0.95:
+        print 'Big Fall!'
+        print dateShow[i], tr
 
 print out.decode('utf-8')
 print out0.decode('utf-8')
@@ -283,4 +295,4 @@ plt.legend(numpoints=1, fontsize=18)
 plt.legend(loc='upper left')
 plt.savefig(name + 'Norm_priceX%.1f.png'%gainNorm)
 #plt.show()
-wb.save(name + '_' + str(datetime.datetime.now().strftime('%d_%H')) +'.xls')
+wb.save(name + '_' + str(datetime.datetime.now().strftime('%d_%H')) + '.xls')
