@@ -241,7 +241,7 @@ for i in range(1, len(totalMoneyShow)):
 print out.decode('utf-8')
 print out0.decode('utf-8')
 print out1.decode('utf-8')
-
+print '\n\n', dateShow
 fig = plt.figure(figsize=(length, width), dpi=myDPI)
 plt.title(name)
 plt.xlabel('time')
